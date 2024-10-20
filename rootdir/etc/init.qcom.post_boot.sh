@@ -128,7 +128,7 @@ elif [ $feature_id == 5 ]; then
 	echo 2 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
 	echo {class:ddr, res:fixed, val: 1333} > /sys/kernel/debug/aop_send_message
 	setprop vendor.sku_identified 1
-elif [ $feature_id == 4 || $feature_id == 3 ]; then
+elif [ $feature_id == 4 ] || [ $feature_id == 3 ]; then
 	echo "SKU Configured : SA6155"
 	echo 748800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 	echo 748800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
@@ -2106,7 +2106,7 @@ case "$target" in
 
         # Socid 386 = Pukeena
         case "$soc_id" in
-           "303" | "307" | "308" | "309" | "320" | "386" )
+           "303" | "307" | "308" | "309" | "320" | "386" | "436")
 
                   # Start Host based Touch processing
                   case "$hw_platform" in
@@ -2441,7 +2441,7 @@ case "$target" in
         esac
 
         case "$soc_id" in
-             "386" )
+             "386" | "436")
 
                 # Start Host based Touch processing
                 case "$hw_platform" in
@@ -2618,9 +2618,10 @@ case "$target" in
             echo "cpufreq" > /sys/class/devfreq/soc:qcom,mincpubw/governor
 
             # Start cdsprpcd only for sdm660 and disable for sdm630
-            if [ "$soc_id" -eq "317" ]; then
+            case "$soc_id" in "317" | "324" )
                 start vendor.cdsprpcd
-            fi
+                ;;
+            esac
 
             # Start Host based Touch processing
                 case "$hw_platform" in
@@ -2943,14 +2944,24 @@ case "$target" in
             hw_platform=`cat /sys/devices/system/soc/soc0/hw_platform`
         fi
 
+        if [ -f /sys/devices/soc0/platform_subtype_id ]; then
+            platform_subtype_id=`cat /sys/devices/soc0/platform_subtype_id`
+        fi
+
         case "$soc_id" in
             "336" | "337" | "347" | "360" | "393" | "370" | "371" )
 
             # Start Host based Touch processing
             case "$hw_platform" in
-              "MTP" | "Surf" | "RCM" | "QRD" | "HDK" )
+              "Surf" | "RCM" | "QRD" | "HDK" )
+                start_hbtp
+                ;;
+              "MTP" )
+                #platform_subtype_id 10 is VR project Sheldon, do not start up touch deamon
+                if [ $platform_subtype_id != 10 ]; then
                   start_hbtp
-                  ;;
+                fi
+                ;;
             esac
 
       # Core control parameters on silver
@@ -4688,6 +4699,24 @@ case "$product" in
 	;;
 	*)
        ;;
+esac
+
+case "$product" in
+	"sdmshrike_au")
+	#Setting the min supported frequencies
+		echo 1113600 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+		echo 1113600 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
+		echo 1113600 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
+		echo 1113600 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
+		echo 1171200 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+		echo 1171200 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
+		echo 1171200 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
+		echo 1171200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
+                echo 4 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel
+                echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
+	;;
+	*)
+	;;
 esac
 
 # Let kernel know our image version/variant/crm_version

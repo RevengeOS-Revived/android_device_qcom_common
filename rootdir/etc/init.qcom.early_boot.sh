@@ -1,6 +1,6 @@
 #! /vendor/bin/sh
 
-# Copyright (c) 2012-2013,2016,2018 The Linux Foundation. All rights reserved.
+# Copyright (c) 2012-2013,2016,2018-2020 The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,6 +28,22 @@
 #
 
 export PATH=/vendor/bin
+
+target_type=`getprop ro.hardware.type`
+if [ "$target_type" == "automotive" ]; then
+    cd /sys/devices/system/memory/
+    n=1
+    addr=`cat aligned_blocks_addr | cut -d ',' -f $n`
+    num=`cat aligned_blocks_num | cut -d ',' -f $n`
+    while [ -n "$addr" ]
+    do
+        echo $addr > probe
+        echo online > memory$num/state
+        let n++
+        addr=`cat aligned_blocks_addr | cut -d ',' -f $n`
+        num=`cat aligned_blocks_num | cut -d ',' -f $n`
+    done
+fi
 
 # Set platform variables
 if [ -f /sys/devices/soc0/hw_platform ]; then
@@ -387,11 +403,21 @@ esac
 case "$product" in
         "sdmshrike_au")
          setprop vendor.display.lcd_density 160
+         echo 940800000 > /sys/class/devfreq/soc:qcom,cpu0-cpu-l3-lat/min_freq
+         echo 940800000 > /sys/class/devfreq/soc:qcom,cpu4-cpu-l3-lat/min_freq
          ;;
         *)
         ;;
 esac
 
+case "$product" in
+        "msmnile_gvmq")
+         setprop vendor.display.lcd_density 160
+         setprop persist.graphics.vulkan.disable true
+         ;;
+        *)
+        ;;
+esac
 # Setup display nodes & permissions
 # HDMI can be fb1 or fb2
 # Loop through the sysfs nodes and determine
